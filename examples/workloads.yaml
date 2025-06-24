@@ -1,0 +1,297 @@
+# WDRF Controller 예제 Workload들
+# 2개 Tier (high, normal) 구조에 맞춘 다양한 시나리오의 예제
+
+---
+# 1. 기본 Workload (일반 우선순위)
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: Workload
+metadata:
+  name: basic-training
+  namespace: team-mlops
+  annotations:
+    wdrf.x-k8s.io/description: "기본 AI 모델 학습 작업"
+spec:
+  podSets:
+  - name: main
+    count: 1
+    template:
+      spec:
+        containers:
+        - name: training
+          image: nvidia/cuda:11.8-base
+          command: ["python", "train.py"]
+          resources:
+            requests:
+              cpu: "4"
+              memory: "8Gi"
+              nvidia.com/gpu: "1"
+              nvidia.com/gpucores: "50"
+              nvidia.com/gpumem-percentage: "50"
+            limits:
+              nvidia.com/gpu: "1"
+              nvidia.com/gpucores: "50"
+              nvidia.com/gpumem-percentage: "50"
+  queueName: h100-80gb-queue
+
+---
+# 2. 높은 우선순위 Workload (승인된 작업)
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: Workload
+metadata:
+  name: high-priority-research
+  namespace: team-mlops
+  annotations:
+    wdrf.x-k8s.io/approved: "true"
+    wdrf.x-k8s.io/description: "승인된 연구 프로젝트 (높은 우선순위)"
+spec:
+  podSets:
+  - name: main
+    count: 1
+    template:
+      spec:
+        containers:
+        - name: research
+          image: nvidia/cuda:11.8-base
+          command: ["python", "research.py"]
+          resources:
+            requests:
+              cpu: "8"
+              memory: "16Gi"
+              nvidia.com/gpu: "2"
+              nvidia.com/gpucores: "80"
+              nvidia.com/gpumem-percentage: "80"
+            limits:
+              nvidia.com/gpu: "2"
+              nvidia.com/gpucores: "80"
+              nvidia.com/gpumem-percentage: "80"
+  queueName: h100-80gb-queue
+
+---
+# 3. 높은 우선순위 Workload (긴급 작업)
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: Workload
+metadata:
+  name: urgent-production
+  namespace: team-mlops
+  annotations:
+    wdrf.x-k8s.io/urgent: "true"
+    wdrf.x-k8s.io/priority-override: "true"
+    wdrf.x-k8s.io/description: "긴급한 프로덕션 모델 학습 (높은 우선순위)"
+spec:
+  podSets:
+  - name: main
+    count: 1
+    template:
+      spec:
+        containers:
+        - name: production
+          image: nvidia/cuda:11.8-base
+          command: ["python", "production_train.py"]
+          resources:
+            requests:
+              cpu: "16"
+              memory: "32Gi"
+              nvidia.com/gpu: "4"
+              nvidia.com/gpucores: "100"
+              nvidia.com/gpumem-percentage: "100"
+            limits:
+              nvidia.com/gpu: "4"
+              nvidia.com/gpucores: "100"
+              nvidia.com/gpumem-percentage: "100"
+  queueName: h100-80gb-queue
+
+---
+# 4. 높은 우선순위 Workload (직접 지정)
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: Workload
+metadata:
+  name: high-priority-direct
+  namespace: team-mlops
+  annotations:
+    wdrf.x-k8s.io/high-priority: "true"
+    wdrf.x-k8s.io/description: "직접 높은 우선순위로 지정된 작업"
+spec:
+  podSets:
+  - name: main
+    count: 1
+    template:
+      spec:
+        containers:
+        - name: high-priority
+          image: nvidia/cuda:11.8-base
+          command: ["python", "high_priority_task.py"]
+          resources:
+            requests:
+              cpu: "4"
+              memory: "8Gi"
+              nvidia.com/gpu: "1"
+              nvidia.com/gpucores: "60"
+              nvidia.com/gpumem-percentage: "60"
+            limits:
+              nvidia.com/gpu: "1"
+              nvidia.com/gpucores: "60"
+              nvidia.com/gpumem-percentage: "60"
+  queueName: h100-80gb-queue
+
+---
+# 5. Gang Scheduling Workload (분산 학습)
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: Workload
+metadata:
+  name: distributed-training
+  namespace: team-mlops
+  annotations:
+    wdrf.x-k8s.io/approved: "true"
+    wdrf.x-k8s.io/description: "분산 학습을 위한 Gang Scheduling"
+spec:
+  podSets:
+  - name: master
+    count: 1
+    template:
+      metadata:
+        labels:
+          kueue.x-k8s.io/pod-group-name: distributed-training
+        annotations:
+          kueue.x-k8s.io/pod-group-total-count: "3"
+          hami.io/node-scheduler-policy: "binpack"
+          hami.io/gpu-scheduler-policy: "binpack"
+      spec:
+        containers:
+        - name: master
+          image: nvidia/cuda:11.8-base
+          command: ["python", "distributed_master.py"]
+          resources:
+            requests:
+              cpu: "8"
+              memory: "16Gi"
+              nvidia.com/gpu: "2"
+              nvidia.com/gpucores: "80"
+              nvidia.com/gpumem-percentage: "80"
+            limits:
+              nvidia.com/gpu: "2"
+              nvidia.com/gpucores: "80"
+              nvidia.com/gpumem-percentage: "80"
+  - name: worker
+    count: 2
+    template:
+      metadata:
+        labels:
+          kueue.x-k8s.io/pod-group-name: distributed-training
+        annotations:
+          kueue.x-k8s.io/pod-group-total-count: "3"
+          hami.io/node-scheduler-policy: "binpack"
+          hami.io/gpu-scheduler-policy: "binpack"
+      spec:
+        containers:
+        - name: worker
+          image: nvidia/cuda:11.8-base
+          command: ["python", "distributed_worker.py"]
+          resources:
+            requests:
+              cpu: "8"
+              memory: "16Gi"
+              nvidia.com/gpu: "2"
+              nvidia.com/gpucores: "80"
+              nvidia.com/gpumem-percentage: "80"
+            limits:
+              nvidia.com/gpu: "2"
+              nvidia.com/gpucores: "80"
+              nvidia.com/gpumem-percentage: "80"
+  queueName: h100-80gb-queue
+
+---
+# 6. GPU Fraction Workload (메모리 효율적)
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: Workload
+metadata:
+  name: gpu-fraction-demo
+  namespace: team-mlops
+  annotations:
+    wdrf.x-k8s.io/description: "GPU Fraction을 활용한 효율적인 리소스 사용"
+spec:
+  podSets:
+  - name: main
+    count: 1
+    template:
+      spec:
+        containers:
+        - name: fraction-demo
+          image: nvidia/cuda:11.8-base
+          command: ["python", "fraction_demo.py"]
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+              nvidia.com/gpu: "1"
+              nvidia.com/gpucores: "25"
+              nvidia.com/gpumem-percentage: "25"
+            limits:
+              nvidia.com/gpu: "1"
+              nvidia.com/gpucores: "25"
+              nvidia.com/gpumem-percentage: "25"
+  queueName: h100-80gb-queue
+
+---
+# 7. 대용량 Workload (리소스 집약적)
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: Workload
+metadata:
+  name: large-scale-training
+  namespace: team-mlops
+  annotations:
+    wdrf.x-k8s.io/approved: "true"
+    wdrf.x-k8s.io/description: "대규모 모델 학습 (높은 dominant share)"
+spec:
+  podSets:
+  - name: main
+    count: 1
+    template:
+      spec:
+        containers:
+        - name: large-training
+          image: nvidia/cuda:11.8-base
+          command: ["python", "large_scale_train.py"]
+          resources:
+            requests:
+              cpu: "32"
+              memory: "64Gi"
+              nvidia.com/gpu: "8"
+              nvidia.com/gpucores: "100"
+              nvidia.com/gpumem-percentage: "100"
+            limits:
+              nvidia.com/gpu: "8"
+              nvidia.com/gpucores: "100"
+              nvidia.com/gpumem-percentage: "100"
+  queueName: h100-80gb-queue
+
+---
+# 8. 경량 Workload (낮은 dominant share)
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: Workload
+metadata:
+  name: light-inference
+  namespace: team-mlops
+  annotations:
+    wdrf.x-k8s.io/description: "경량 추론 작업 (낮은 dominant share)"
+spec:
+  podSets:
+  - name: main
+    count: 1
+    template:
+      spec:
+        containers:
+        - name: inference
+          image: nvidia/cuda:11.8-base
+          command: ["python", "inference.py"]
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+              nvidia.com/gpu: "1"
+              nvidia.com/gpucores: "10"
+              nvidia.com/gpumem-percentage: "10"
+            limits:
+              nvidia.com/gpu: "1"
+              nvidia.com/gpucores: "10"
+              nvidia.com/gpumem-percentage: "10"
+  queueName: h100-80gb-queue 

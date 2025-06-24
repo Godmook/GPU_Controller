@@ -1,0 +1,52 @@
+# 개발 및 테스트 의존성
+# 기본 requirements.txt에 추가로 설치됩니다
+
+# 테스트 프레임워크
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+pytest-asyncio>=0.21.0
+pytest-xdist>=3.0.0
+pytest-benchmark>=4.0.0
+
+# 코드 품질 도구
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+isort>=5.12.0
+pre-commit>=3.0.0
+
+# 보안 스캔
+bandit>=1.7.0
+safety>=2.3.0
+
+# 성능 모니터링
+psutil>=5.9.0
+memory-profiler>=0.60.0
+
+# 문서 생성
+sphinx>=6.0.0
+sphinx-rtd-theme>=1.2.0
+
+# 타입 체크
+types-PyYAML>=6.0.0
+types-requests>=2.28.0
+
+# 개발 도구
+ipython>=8.0.0
+jupyter>=1.0.0
+notebook>=6.5.0
+
+# 디버깅
+pdbpp>=0.10.0
+ipdb>=0.13.0
+
+# 프로파일링 (cProfile은 Python 내장 모듈이므로 제거)
+line-profiler>=4.0.0
+
+# 커버리지 리포트 (htmlcov는 coverage에서 자동 생성됨)
+coverage>=7.0.0
+
+# 가상환경 관리
+virtualenv>=20.0.0
+pip-tools>=7.0.0 

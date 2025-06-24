@@ -1,0 +1,161 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wdrf-system
+  labels:
+    name: wdrf-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wdrf-controller
+  namespace: wdrf-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: wdrf-controller
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["kueue.x-k8s.io"]
+  resources: ["workloads", "clusterqueues", "localqueues"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wdrf-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: wdrf-controller
+subjects:
+- kind: ServiceAccount
+  name: wdrf-controller
+  namespace: wdrf-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wdrf-controller
+  namespace: wdrf-system
+  labels:
+    app: wdrf-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wdrf-controller
+  template:
+    metadata:
+      labels:
+        app: wdrf-controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: wdrf-controller
+      containers:
+      - name: wdrf-controller
+        image: wdrf-controller:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: LOOP_INTERVAL
+          value: "30"
+        - name: AGING_COEFFICIENT
+          value: "0.1"
+        - name: MAX_AGING_TIME
+          value: "3600"
+        - name: METRICS_ENABLED
+          value: "true"
+        - name: METRICS_PORT
+          value: "8080"
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: logs
+          mountPath: /var/log
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: logs
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wdrf-controller
+  namespace: wdrf-system
+  labels:
+    app: wdrf-controller
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: metrics
+  selector:
+    app: wdrf-controller
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wdrf-controller
+  namespace: wdrf-system
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: wdrf-controller.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: wdrf-controller
+            port:
+              number: 8080 
