@@ -2,8 +2,8 @@
 FROM python:3.11-slim
 
 # 메타데이터
-LABEL maintainer="AX Technology Group"
-LABEL description="WDRF Controller for GPU Scheduling Optimization"
+LABEL maintainer="Team MLOps"
+LABEL description="Controller for GPU Scheduling Optimization"
 LABEL version="1.0.0"
 
 # 작업 디렉토리 설정
