@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wdrf-controller"
+version = "1.0.0"
+description = "Weighted Dominant Resource Fairness GPU Scheduler for Kubernetes"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "WDRF Team"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+
+[project.scripts]
+wdrf-controller = "controller.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["controller*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.txt", "*.md", "*.yaml", "*.yml"]

@@ -52,6 +52,7 @@ help:
 install-deps:
 	@echo "Installing Python dependencies..."
 	$(PIP) install -r requirements.txt
+	$(PIP) install -e .
 	@echo "Dependencies installed successfully!"
 
 install-dev: install-deps
