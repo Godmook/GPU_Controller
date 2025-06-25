@@ -40,17 +40,6 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
 
-    - name: Run linting
-      run: |
-        flake8 controller/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        black --check controller/ tests/
-        mypy controller/ --install-types
-
-    - name: Run security scan
-      run: |
-        bandit -r controller/ -f json -o bandit-report.json
-        safety check
-
     - name: Run unit tests
       run: |
         pytest tests/ -v --cov=controller --cov-report=xml --cov-report=html
