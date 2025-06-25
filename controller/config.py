@@ -1,10 +1,10 @@
 """
-WDRF Controller Configuration
-GPU 스케줄링 최적화를 위한 설정값들을 정의합니다.
+Configuration for WDRF Controller
+WDRF Controller의 설정을 관리합니다.
 """
 
 import os
-from typing import Dict, Any, Optional, Union
+from typing import Any, Dict
 
 
 class Config:
@@ -28,7 +28,7 @@ class Config:
     }
 
     # Kueue Priority Class 설정
-    KUEUE_PRIORITY_CLASSES: Dict[str, Dict[str, Union[int, str]]] = {
+    KUEUE_PRIORITY_CLASSES: Dict[str, Dict[str, Any]] = {
         "wdrf-high": {
             "value": 100,
             "description": "WDRF High Priority Class for approved/urgent workloads",

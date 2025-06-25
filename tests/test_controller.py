@@ -1,21 +1,19 @@
 """
-WDRF Controller 테스트 스크립트
-컨트롤러의 주요 기능을 테스트합니다.
+Unit Tests for WDRF Controller
+WDRF Controller의 단위 테스트입니다.
 """
 
-import unittest
-import time
-from unittest.mock import Mock, patch, MagicMock
 import sys
-import os
+import unittest
+from typing import Any, Dict
+from unittest.mock import Mock, patch
 
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import pytest
 
 from controller.config import Config
+from controller.k8s_client import KubernetesClient
 from controller.priority import PriorityCalculator, PriorityTier, WorkloadPriority
 from controller.resource_view import ResourceView
-from controller.k8s_client import KubernetesClient
 
 
 class TestConfig(unittest.TestCase):
@@ -46,14 +44,14 @@ class TestPriorityCalculator(unittest.TestCase):
     def test_determine_priority_tier(self):
         """우선순위 계층 결정 테스트"""
         # 높은 우선순위
-        workload_high = {
+        workload_high: Dict[str, Any] = {
             "metadata": {"annotations": {"wdrf.x-k8s.io/approved": "true"}}
         }
         tier = self.calculator._determine_priority_tier(workload_high)
         self.assertEqual(tier, PriorityTier.HIGH)
 
         # 일반 우선순위
-        workload_normal = {"metadata": {"annotations": {}}}
+        workload_normal: Dict[str, Any] = {"metadata": {"annotations": {}}}
         tier = self.calculator._determine_priority_tier(workload_normal)
         self.assertEqual(tier, PriorityTier.NORMAL)
 

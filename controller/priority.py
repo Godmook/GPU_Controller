@@ -1,13 +1,13 @@
 """
-Priority Calculation Module for WDRF Controller
-DRF, 가중치, Aging을 기반으로 Workload의 우선순위를 계산합니다.
+Priority Calculator for WDRF Controller
+Workload의 우선순위를 계산하는 모듈입니다.
 """
 
 import logging
 import time
-from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List
 
 from .config import Config
 
@@ -341,10 +341,10 @@ class PriorityCalculator:
     def should_override_priority(self, workload: Dict[str, Any]) -> bool:
         """우선순위 오버라이드가 필요한지 확인합니다."""
         annotations = workload.get("metadata", {}).get("annotations", {})
-        return (
-            annotations.get("wdrf.x-k8s.io/priority-override", "false").lower()
-            == "true"
-        )
+        override_value = annotations.get(
+            "wdrf.x-k8s.io/priority-override", "false"
+        ).lower()
+        return override_value == "true"
 
     def get_manual_priority(self, workload: Dict[str, Any]) -> int:
         """수동으로 설정된 우선순위를 가져옵니다."""

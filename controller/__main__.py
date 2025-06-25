@@ -3,17 +3,16 @@ Main Entry Point for WDRF Controller
 WDRF Controller의 메인 엔트리포인트입니다.
 """
 
+import argparse
 import logging
 import sys
-import argparse
-from pathlib import Path
 from typing import Optional
 
-from .controller import WDRFController
 from .config import Config
+from .controller import WDRFController
 
 
-def setup_logging(log_level: Optional[str] = None):
+def setup_logging(log_level: Optional[str] = None) -> None:
     """로깅을 설정합니다."""
     if log_level is None:
         log_level = Config.LOG_LEVEL
@@ -34,7 +33,7 @@ def setup_logging(log_level: Optional[str] = None):
     )
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     """명령행 인수를 파싱합니다."""
     parser = argparse.ArgumentParser(
         description="WDRF (Weighted Dominant Resource Fairness) Controller",
@@ -43,13 +42,13 @@ def parse_arguments():
 Examples:
   # 기본 실행
   python -m controller
-  
+
   # 로그 레벨 지정
   python -m controller --log-level DEBUG
-  
+
   # 설정 파일 지정
   python -m controller --config /path/to/config.yaml
-  
+
   # 헬스 체크 모드
   python -m controller --health-check
         """,
@@ -64,9 +63,7 @@ Examples:
 
     parser.add_argument("--config", type=str, help="설정 파일 경로")
 
-    parser.add_argument(
-        "--health-check", action="store_true", help="헬스 체크 모드로 실행"
-    )
+    parser.add_argument("--health-check", action="store_true", help="헬스 체크 모드로 실행")
 
     parser.add_argument(
         "--dry-run",
@@ -79,7 +76,7 @@ Examples:
     return parser.parse_args()
 
 
-def load_config_file(config_path: str):
+def load_config_file(config_path: str) -> None:
     """설정 파일을 로드합니다."""
     try:
         import yaml
@@ -100,7 +97,7 @@ def load_config_file(config_path: str):
         sys.exit(1)
 
 
-def print_banner():
+def print_banner() -> None:
     """시작 배너를 출력합니다."""
     banner = """
 ╔══════════════════════════════════════════════════════════════╗
@@ -120,7 +117,7 @@ def print_banner():
     print(banner)
 
 
-def health_check_mode():
+def health_check_mode() -> None:
     """헬스 체크 모드로 실행합니다."""
     try:
         controller = WDRFController()
@@ -146,7 +143,7 @@ def health_check_mode():
         sys.exit(1)
 
 
-def main(log_level: Optional[str] = None):
+def main(log_level: Optional[str] = None) -> None:
     """메인 함수"""
     # 명령행 인수 파싱
     args = parse_arguments()

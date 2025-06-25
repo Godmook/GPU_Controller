@@ -1,11 +1,11 @@
 """
-Resource View Module for WDRF Controller
-노드의 용량과 사용량을 계산하여 클러스터 리소스 상태를 파악합니다.
+Resource View for WDRF Controller
+클러스터의 리소스 상태를 관리하는 모듈입니다.
 """
 
 import logging
-from typing import Dict, List, Any, Tuple
 from collections import defaultdict
+from typing import Any, Dict, List
 
 from .config import Config
 
@@ -237,7 +237,7 @@ class ResourceView:
         utilization = self.get_cluster_utilization()
         available = self.get_available_resources()
 
-        return {
+        summary: Dict[str, Any] = {
             "capacity": capacity,
             "usage": usage,
             "utilization": utilization,
@@ -245,3 +245,5 @@ class ResourceView:
             "gpu_nodes": self.get_gpu_nodes(),
             "total_nodes": len(self._node_info),
         }
+
+        return summary

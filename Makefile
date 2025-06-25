@@ -21,6 +21,8 @@ help:
 	@echo "  test-integration Run integration tests"
 	@echo "  test-all       Run all tests with coverage"
 	@echo "  lint           Run code linting"
+	@echo "  type-check     Run type checking with mypy"
+	@echo "  quality        Run linting and type checking"
 	@echo "  format         Format code with black"
 	@echo "  pre-commit     Run pre-commit hooks"
 	@echo ""
@@ -70,8 +72,17 @@ lint:
 	@echo "Running code linting..."
 	flake8 controller/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
 	black --check controller/ tests/
-	mypy controller/
 	@echo "Linting completed!"
+
+# 타입 체크
+type-check:
+	@echo "Running type checking with mypy..."
+	mypy controller/ --install-types
+	@echo "Type checking completed!"
+
+# 전체 코드 품질 검사
+quality: lint type-check
+	@echo "Code quality check completed!"
 
 # pre-commit 훅 실행
 pre-commit:
@@ -104,7 +115,7 @@ security-scan:
 	@echo "Security scan completed!"
 
 # 빌드
-build: install-deps lint test-all security-scan
+build: install-deps quality test-all security-scan
 	@echo "Building WDRF Controller..."
 	$(PYTHON) -m controller --health-check
 	@echo "Build completed successfully!"
@@ -291,4 +302,15 @@ venv:
 
 # 전체 개발 워크플로우
 dev-workflow: venv install-dev pre-commit test-all
-	@echo "Development workflow completed!" 
+	@echo "Development workflow completed!"
+
+# 간단한 커밋 전 검사
+pre-commit-simple:
+	@echo "Running simple pre-commit checks..."
+	black --check controller/ tests/
+	isort --check-only controller/ tests/
+	@echo "Simple checks completed!"
+
+# 전체 검사 (커밋 전에 수동으로 실행)
+full-check: quality test-all security-scan
+	@echo "Full check completed!"

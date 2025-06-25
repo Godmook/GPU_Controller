@@ -1,19 +1,18 @@
 """
-Main Controller for WDRF Controller
-전체 Workload를 순회하고 우선순위를 업데이트하는 메인 컨트롤러입니다.
+WDRF Controller
+Weighted Dominant Resource Fairness GPU Scheduler for Kubernetes
 """
 
 import logging
-import time
 import signal
-import sys
-from typing import Dict, List, Any
+import time
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from .config import Config
 from .k8s_client import KubernetesClient
-from .resource_view import ResourceView
 from .priority import PriorityCalculator, WorkloadPriority
+from .resource_view import ResourceView
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +20,12 @@ logger = logging.getLogger(__name__)
 class WDRFController:
     """WDRF (Weighted Dominant Resource Fairness) Controller"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """WDRF Controller를 초기화합니다."""
         self.running = False
-        self.k8s_client = None
-        self.resource_view = None
-        self.priority_calculator = None
+        self.k8s_client: Optional[KubernetesClient] = None
+        self.resource_view: Optional[ResourceView] = None
+        self.priority_calculator: Optional[PriorityCalculator] = None
 
         # 통계 정보
         self.stats = {
@@ -43,12 +42,12 @@ class WDRFController:
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
 
-    def _signal_handler(self, signum, frame):
+    def _signal_handler(self, signum: int, frame: Any) -> None:
         """시그널 핸들러"""
         logger.info(f"Received signal {signum}, shutting down gracefully...")
         self.running = False
 
-    def initialize(self):
+    def initialize(self) -> bool:
         """컨트롤러를 초기화합니다."""
         try:
             logger.info("Initializing WDRF Controller...")
@@ -72,7 +71,8 @@ class WDRFController:
             logger.info("Priority calculator initialized")
 
             # 초기 클러스터 상태 새로고침
-            self.resource_view.refresh_cluster_state()
+            if self.resource_view:
+                self.resource_view.refresh_cluster_state()
             logger.info("Initial cluster state refreshed")
 
             logger.info("WDRF Controller initialized successfully")
@@ -82,7 +82,7 @@ class WDRFController:
             logger.error(f"Failed to initialize WDRF Controller: {e}")
             return False
 
-    def run(self):
+    def run(self) -> None:
         """컨트롤러를 실행합니다."""
         if not self.initialize():
             logger.error("Failed to initialize controller, exiting...")
@@ -117,13 +117,17 @@ class WDRFController:
         finally:
             self.shutdown()
 
-    def _run_cycle(self):
+    def _run_cycle(self) -> None:
         """단일 사이클을 실행합니다."""
         # 1. 클러스터 상태 새로고침
-        self.resource_view.refresh_cluster_state()
+        if self.resource_view:
+            self.resource_view.refresh_cluster_state()
 
         # 2. Pending Workload 조회
-        pending_workloads = self.k8s_client.get_pending_workloads()
+        if self.k8s_client:
+            pending_workloads = self.k8s_client.get_pending_workloads()
+        else:
+            pending_workloads = []
 
         if not pending_workloads:
             logger.debug("No pending workloads found")
@@ -140,9 +144,9 @@ class WDRFController:
         # 5. 로그 출력
         self._log_cycle_summary(pending_workloads, [])
 
-    def _process_regular_workloads(self, workloads: List[Dict[str, Any]]):
+    def _process_regular_workloads(self, workloads: List[Dict[str, Any]]) -> None:
         """일반 Workload들을 처리합니다."""
-        if not workloads:
+        if not workloads or not self.priority_calculator:
             return
 
         # 우선순위 계산 및 정렬
@@ -153,8 +157,13 @@ class WDRFController:
         # 우선순위 업데이트
         self._update_workload_priorities(workload_priorities)
 
-    def _update_workload_priorities(self, workload_priorities: List[WorkloadPriority]):
+    def _update_workload_priorities(
+        self, workload_priorities: List[WorkloadPriority]
+    ) -> None:
         """Workload 우선순위를 업데이트합니다."""
+        if not self.k8s_client:
+            return
+
         updates_count = 0
         priority_class_updates = 0
 
@@ -201,9 +210,9 @@ class WDRFController:
 
     def _log_cycle_summary(
         self, all_workloads: List[Dict[str, Any]], gang_workloads: List[Dict[str, Any]]
-    ):
+    ) -> None:
         """사이클 요약을 로그로 출력합니다."""
-        if not all_workloads:
+        if not all_workloads or not self.priority_calculator or not self.resource_view:
             return
 
         # 우선순위 요약
@@ -285,7 +294,7 @@ class WDRFController:
         else:
             return f"{secs}s"
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """컨트롤러를 종료합니다."""
         logger.info("Shutting down WDRF Controller...")
         self.running = False
@@ -309,9 +318,23 @@ class WDRFController:
         """헬스 체크를 수행합니다."""
         try:
             # Kubernetes 연결 확인
+            if not self.k8s_client:
+                return {
+                    "status": "unhealthy",
+                    "error": "Kubernetes client not initialized",
+                    "timestamp": datetime.now().isoformat(),
+                }
+
             nodes = self.k8s_client.get_nodes()
 
             # 클러스터 상태 확인
+            if not self.resource_view:
+                return {
+                    "status": "unhealthy",
+                    "error": "Resource view not initialized",
+                    "timestamp": datetime.now().isoformat(),
+                }
+
             cluster_summary = self.resource_view.get_cluster_summary()
 
             # Priority Class 확인

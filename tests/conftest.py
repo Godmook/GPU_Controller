@@ -1,21 +1,18 @@
 """
-pytest 공통 설정 및 Fixture 정의
+Test Configuration and Fixtures
+테스트를 위한 설정과 fixture들을 정의합니다.
 """
 
-import pytest
-import tempfile
 import os
-import sys
+import tempfile
 from unittest.mock import Mock, patch
-from typing import Dict, Any
 
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import pytest
 
 from controller.config import Config
+from controller.k8s_client import KubernetesClient
 from controller.priority import PriorityCalculator, PriorityTier
 from controller.resource_view import ResourceView
-from controller.k8s_client import KubernetesClient
 
 
 @pytest.fixture(scope="session")
@@ -130,10 +127,9 @@ def mock_k8s_client():
     with patch("controller.k8s_client.config") as mock_config:
         with patch("controller.k8s_client.client") as mock_client:
             client = KubernetesClient()
-            client.api_client = Mock()
-            client.core_v1_api = Mock()
-            client.custom_objects_api = Mock()
-            client.scheduling_v1_api = Mock()
+            client.core_v1 = Mock()
+            client.custom_objects = Mock()
+            client.scheduling_v1 = Mock()
             yield client
 
 
@@ -193,7 +189,7 @@ def reset_config():
     yield
     # Config 클래스의 기본값으로 복원
     Config.LOG_LEVEL = "INFO"
-    Config.SCAN_INTERVAL = 60
+    Config.LOOP_INTERVAL = 60
     Config.AGING_COEFFICIENT = 0.05
     Config.MAX_AGING_TIME = 1800
 

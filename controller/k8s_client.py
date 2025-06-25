@@ -4,11 +4,10 @@ Kubernetes API와 상호작용하여 Kueue Workload를 관리합니다.
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
-from kubernetes.config import kube_config
-import yaml
 
 from .config import Config
 
@@ -18,12 +17,12 @@ logger = logging.getLogger(__name__)
 class KubernetesClient:
     """Kubernetes API 클라이언트"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Kubernetes 클라이언트를 초기화합니다."""
         self._init_kubernetes_client()
         self._init_kueue_client()
 
-    def _init_kubernetes_client(self):
+    def _init_kubernetes_client(self) -> None:
         """Kubernetes 클라이언트를 초기화합니다."""
         try:
             if Config.KUBECONFIG_PATH:
@@ -42,7 +41,7 @@ class KubernetesClient:
             logger.error(f"Failed to initialize Kubernetes client: {e}")
             raise
 
-    def _init_kueue_client(self):
+    def _init_kueue_client(self) -> None:
         """Kueue API 클라이언트를 초기화합니다."""
         self.kueue_api_group = Config.KUEUE_API_GROUP
         self.workload_kind = Config.WORKLOAD_KIND
@@ -323,7 +322,8 @@ class KubernetesClient:
                 group="kueue.x-k8s.io", version="v1beta1", plural="clusterqueues"
             )
 
-            return cluster_queues.get("items", [])
+            items = cluster_queues.get("items", [])
+            return items if isinstance(items, list) else []
 
         except ApiException as e:
             logger.error(f"Failed to get cluster queues: {e}")
@@ -344,7 +344,8 @@ class KubernetesClient:
                     group="kueue.x-k8s.io", version="v1beta1", plural="localqueues"
                 )
 
-            return local_queues.get("items", [])
+            items = local_queues.get("items", [])
+            return items if isinstance(items, list) else []
 
         except ApiException as e:
             logger.error(f"Failed to get local queues: {e}")
@@ -369,7 +370,7 @@ class KubernetesClient:
             logger.error(f"Failed to get pods in namespace {namespace}: {e}")
             return []
 
-    def _extract_pod_resources(self, pod) -> Dict[str, Any]:
+    def _extract_pod_resources(self, pod: Any) -> Dict[str, Any]:
         """Pod의 리소스 요청사항을 추출합니다."""
         resources = {}
 
@@ -389,7 +390,7 @@ class KubernetesClient:
 
         return resources
 
-    def _parse_quantity(self, quantity) -> float:
+    def _parse_quantity(self, quantity: Any) -> float:
         """Kubernetes Quantity를 float로 변환합니다."""
         if quantity is None:
             return 0.0

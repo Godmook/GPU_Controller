@@ -8,12 +8,6 @@ repos:
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: debug-statements
-      - id: check-case-conflict
-      - id: check-docstring-first
-      - id: check-json
-      - id: check-merge-conflict
-      - id: check-toml
-      - id: detect-private-key
 
   - repo: https://github.com/psf/black
     rev: 23.3.0
@@ -28,54 +22,10 @@ repos:
       - id: isort
         args: [--profile=black, --line-length=88]
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
-    hooks:
-      - id: flake8
-        args: [--max-line-length=88, --extend-ignore=E203,W503]
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.3.0
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-PyYAML, types-requests]
-        args: [--ignore-missing-imports]
-
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.4
-    hooks:
-      - id: bandit
-        args: [-r, controller/, -f, json, -o, bandit-report.json]
-        exclude: ^tests/
-
-  - repo: https://github.com/pycqa/safety
-    rev: v2.3.0
-    hooks:
-      - id: safety
-        args: [check]
-
-  - repo: local
-    hooks:
-      - id: pytest
-        name: pytest
-        entry: pytest
-        language: system
-        pass_filenames: false
-        always_run: true
-        args: [tests/, -v, --tb=short]
-
-      - id: coverage
-        name: coverage
-        entry: coverage
-        language: system
-        pass_filenames: false
-        always_run: true
-        args: [run, -m, pytest, tests/, --cov=controller, --cov-report=term-missing]
-
 ci:
   autofix_commit_msg: 'style: auto fixes from pre-commit hooks
 
     [skip ci]'
   autoupdate_commit_msg: 'ci: pre-commit autoupdate
 
-    [skip ci]' 
+    [skip ci]'

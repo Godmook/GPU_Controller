@@ -3,15 +3,16 @@ WDRF Controller 통합 테스트
 실제 Kubernetes 환경과의 통합을 테스트합니다.
 """
 
-import pytest
-import time
 import subprocess
 import sys
-from unittest.mock import patch, Mock
-from typing import Dict, Any
+import time
+from typing import Any, Dict
+from unittest.mock import Mock, patch
 
-from controller.controller import WDRFController
+import pytest
+
 from controller.config import Config
+from controller.controller import WDRFController
 from controller.priority import PriorityTier
 
 
@@ -208,8 +209,9 @@ class TestPerformanceIntegration:
 
     def test_memory_usage_under_load(self, mock_resource_view):
         """부하 하에서의 메모리 사용량 테스트"""
-        import psutil
         import os
+
+        import psutil
 
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss
