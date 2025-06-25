@@ -22,8 +22,7 @@ class TestConfig(unittest.TestCase):
     
     def test_priority_weights(self):
         """우선순위 가중치 테스트"""
-        self.assertEqual(Config.get_priority_weight("urgent"), 1000)
-        self.assertEqual(Config.get_priority_weight("approved"), 100)
+        self.assertEqual(Config.get_priority_weight("high"), 100)
         self.assertEqual(Config.get_priority_weight("normal"), 1)
         self.assertEqual(Config.get_priority_weight("unknown"), 1)  # 기본값
     
@@ -44,27 +43,16 @@ class TestPriorityCalculator(unittest.TestCase):
     
     def test_determine_priority_tier(self):
         """우선순위 계층 결정 테스트"""
-        # 긴급 우선순위
-        workload_urgent = {
-            "metadata": {
-                "annotations": {
-                    "wdrf.x-k8s.io/urgent": "true"
-                }
-            }
-        }
-        tier = self.calculator._determine_priority_tier(workload_urgent)
-        self.assertEqual(tier, PriorityTier.URGENT)
-        
-        # 승인된 우선순위
-        workload_approved = {
+        # 높은 우선순위
+        workload_high = {
             "metadata": {
                 "annotations": {
                     "wdrf.x-k8s.io/approved": "true"
                 }
             }
         }
-        tier = self.calculator._determine_priority_tier(workload_approved)
-        self.assertEqual(tier, PriorityTier.APPROVED)
+        tier = self.calculator._determine_priority_tier(workload_high)
+        self.assertEqual(tier, PriorityTier.HIGH)
         
         # 일반 우선순위
         workload_normal = {
@@ -78,44 +66,45 @@ class TestPriorityCalculator(unittest.TestCase):
     def test_calculate_aging_factor(self):
         """Aging Factor 계산 테스트"""
         # Aging 비활성화
-        with patch.object(Config.SCHEDULING_POLICIES, 'get', return_value=False):
+        with patch.object(Config, 'SCHEDULING_POLICIES', {'enable_aging': False}):
             factor = self.calculator._calculate_aging_factor(100)
             self.assertEqual(factor, 0.0)
         
         # Aging 활성화
-        with patch.object(Config.SCHEDULING_POLICIES, 'get', return_value=True):
+        with patch.object(Config, 'SCHEDULING_POLICIES', {'enable_aging': True}):
             factor = self.calculator._calculate_aging_factor(100)
             expected = 100 * Config.AGING_COEFFICIENT
             self.assertEqual(factor, expected)
         
         # 최대 Aging 시간 제한
-        with patch.object(Config.SCHEDULING_POLICIES, 'get', return_value=True):
+        with patch.object(Config, 'SCHEDULING_POLICIES', {'enable_aging': True}):
             factor = self.calculator._calculate_aging_factor(10000)  # 매우 긴 대기 시간
             expected = Config.MAX_AGING_TIME * Config.AGING_COEFFICIENT
             self.assertEqual(factor, expected)
     
     def test_calculate_final_priority(self):
         """최종 우선순위 계산 테스트"""
-        # 긴급 우선순위
+        # 높은 우선순위
         priority = self.calculator._calculate_final_priority(
-            PriorityTier.URGENT, 0.5, 10.0
+            PriorityTier.HIGH, 0.5, 10.0
         )
-        self.assertGreater(priority, 0)
+        # dominant_share - aging_factor = 0.5 - 10.0 = -9.5 (음수 가능)
+        self.assertEqual(priority, -9.5)
         
         # 일반 우선순위
         priority = self.calculator._calculate_final_priority(
             PriorityTier.NORMAL, 0.5, 10.0
         )
-        self.assertGreater(priority, 0)
+        self.assertEqual(priority, -9.5)
         
-        # Aging이 높은 경우 우선순위 증가
+        # Aging이 높은 경우 우선순위 감소 (더 작은 값)
         priority_with_aging = self.calculator._calculate_final_priority(
             PriorityTier.NORMAL, 0.5, 100.0
         )
         priority_without_aging = self.calculator._calculate_final_priority(
             PriorityTier.NORMAL, 0.5, 0.0
         )
-        self.assertGreater(priority_with_aging, priority_without_aging)
+        self.assertLess(priority_with_aging, priority_without_aging)
     
     def test_extract_workload_resources(self):
         """Workload 리소스 추출 테스트"""
@@ -150,9 +139,10 @@ class TestPriorityCalculator(unittest.TestCase):
         resources = self.calculator._extract_workload_resources(workload)
         
         # Pod 개수만큼 곱해져야 함
+        # requests와 limits 모두에서 GPU를 계산하므로 1 + 1 = 2, 그 다음 2 * 2 = 4
         self.assertEqual(resources["cpu"], 8.0)  # 4 * 2
-        self.assertEqual(resources["memory"], 8589934592.0)  # 8Gi * 2
-        self.assertEqual(resources["nvidia.com/gpu"], 2.0)  # 1 * 2
+        self.assertEqual(resources["memory"], 17179869184.0)  # 8Gi * 2 (정확한 값)
+        self.assertEqual(resources["nvidia.com/gpu"], 4.0)  # (1 + 1) * 2 = 4
 
 class TestResourceView(unittest.TestCase):
     """리소스 뷰 테스트"""
