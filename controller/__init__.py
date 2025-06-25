@@ -15,10 +15,10 @@ from .k8s_client import KubernetesClient
 
 __all__ = [
     "WDRFController",
-    "Config", 
+    "Config",
     "PriorityCalculator",
     "WorkloadPriority",
     "PriorityTier",
     "ResourceView",
-    "KubernetesClient"
+    "KubernetesClient",
 ]
